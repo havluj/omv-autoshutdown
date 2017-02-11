@@ -40,7 +40,7 @@ $TRANSIMISSION_PORT = 9091;
  ****************************************************************************/
 
 
-$DEBUG = FALSE;
+$DEBUG = TRUE;
 $SERVER_IP = "localhost";
 
 function log_message($message, $shutdownTermination = FALSE)
@@ -116,7 +116,7 @@ function isTransmissionActive($serverAddress, $port)
 
 		// get json data
 		log_message("checking " . $url . " ...");
-		$data = "{\"arguments\": {\"fields\": [ \"name\" ]},\"method\": \"torrent-get\"}";
+		$data = "{\"arguments\": {\"fields\": [ \"name\", \"percentDone\" ]},\"method\": \"torrent-get\"}";
 		$options = [
 			"http" => [
 				"header"  => "X-Transmission-Session-Id: " . $transmissionSessionId . "\r\n"
@@ -136,9 +136,15 @@ function isTransmissionActive($serverAddress, $port)
 		$decodedJson = json_decode($result);
 		$downloadsCnt = count($decodedJson->arguments->torrents);
 		if ($downloadsCnt > 0) {
-			log_message("there is/are " . $downloadsCnt . " active download(s)", TRUE);
+			log_message("there is/are " . $downloadsCnt . " download(s) in the transmission queue");
 
-			return TRUE;
+			foreach ($decodedJson->arguments->torrents as $torrent) {
+				if ($torrent->percentDone < 1) {
+					log_message("at least one of the downloads is not finished yet", TRUE);
+
+					return TRUE;
+				}
+			}
 		} else {
 			log_message("there are no active transimission downloads");
 		}
