@@ -30,7 +30,7 @@ $SHUTDOWN_COUNTDOWN = 15;
 
 // Plex configuration
 $PLEX_PORT = 32400;
-$PLEX_TOKEN = "cPeB95ZdByKUkNqPzeph";
+$PLEX_TOKEN = "";
 
 // Transmission configuration
 $TRANSIMISSION_PORT = 9091;
