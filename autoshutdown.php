@@ -18,7 +18,7 @@
  * How often should the script check for service activity
  * (in seconds).
  */
-$SCRIPT_SLEEP_TIME = 60;
+$SCRIPT_SLEEP_TIME = 10;
 
 /**
  * When no service is active, the script will set up
@@ -26,7 +26,7 @@ $SCRIPT_SLEEP_TIME = 60;
  * many minutes will the server shutdown if it does not
  * become active.
  */
-$SHUTDOWN_COUNTDOWN = 15;
+$SHUTDOWN_COUNTDOWN = 10;
 
 // Plex configuration
 $PLEX_PORT = 32400;
@@ -41,19 +41,30 @@ $TRANSIMISSION_PORT = 9091;
 
 
 $DEBUG = TRUE;
+$LOG_LIFESPAN = 7 * 24 * 60 * 60; // 7 weeks in millis
+$LOG_FOLDER = "logs";
+$CLEAR_LOG_DIR_EVERY = 30 * 60; // clean logs every 30 minutes (IN SECODNS, same as $SCRIPT_SLEEP_TIME)
 $SERVER_IP = "localhost";
+$SCRIPT_DIR = realpath(dirname(__FILE__));
 
 function log_message($message, $shutdownTermination = FALSE)
 {
 	if ($GLOBALS["DEBUG"]) {
+        $location = $SCRIPT_DIR . "/" . $LOG_FOLDER;
+        $filename = date("Ymd") . ".txt";
+        
 		print($message);
-		file_put_contents("/opt/autoshutdown/log.txt", date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
+		file_put_contents($location . "/" . $filename, date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
 		if ($shutdownTermination) {
 			print(" - shutdown terminated\n");
 		} else {
 			print("\n");
 		}
 	}
+}
+
+function clean_up_logs() {
+    // todo user LOG_LIFESPAN
 }
 
 function isPlexActive($serverAddress, $port, $token)
@@ -187,6 +198,12 @@ function isAnybodyLoggedIn()
 
 // main cycle
 $isAutoshutdownSet = FALSE;
+if($CLEAR_LOG_DIR_EVERY >= $SCRIPT_SLEEP_TIME) {
+    $cleanLogsThreashold = $CLEAR_LOG_DIR_EVERY / $SCRIPT_SLEEP_TIME;
+} else {
+    $cleanLogsThreashold = 0; // clean logs every run
+}
+$cleanLogsCycle = $cleanLogsThreashold ; // every 30 minutes
 while (TRUE) {
 	if (isAnybodyLoggedIn() || isSambaActive() || isPlexActive($SERVER_IP, $PLEX_PORT, $PLEX_TOKEN)
 		|| isTransmissionActive($SERVER_IP, $TRANSIMISSION_PORT)
@@ -204,7 +221,7 @@ while (TRUE) {
 	} else {
 		if (!$isAutoshutdownSet) {
 			log_message("no services active, setting up shutdown ...");
-			$outputCode = exec("/opt/autoshutdown/autoshutdown.sh " . $SHUTDOWN_COUNTDOWN . " &>/dev/null &");
+			$outputCode = exec($SCRIPT_DIR . "/autoshutdown.sh " . $SHUTDOWN_COUNTDOWN . " &>/dev/null &");
 			if ($outputCode == 0) {
 				$isAutoshutdownSet = TRUE;
 				log_message("shutdown has been successfully set up");
@@ -215,5 +232,14 @@ while (TRUE) {
 	}
 
 	log_message("-------------------------------------------------------------");
+	
+	// clear up logs
+	if(cleanLogsCycle == $cleanLogsThreashold) { // clean up logs and reset cycle counter
+        clean_up_logs();
+        $cleanLogsCycle = 0;
+    } else { // increment cycle counter
+        $cleanLogsCycle++;
+    }
+    
 	sleep($SCRIPT_SLEEP_TIME);
 }
