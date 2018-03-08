@@ -1,43 +1,18 @@
-tutorial, co delam
+# omv-autoshutdown
+
+Tutorial will be available soon on my website. 
+
+In short this simple project shuts down my open media vault based on it current usage.
 
 
+## todo list
+- clear logs function
+- transmission login
+- check if plex is running during the first run (if not, stop the service, try to start it again. If that does not work, restart the server and set a flag for the next time - so we do not restart indefinetely)
+- accept plex token, transmission username and pwd as cmd arguments
 
-1. zamer - chtel jsem autoshutdown a wake on lan
-
-2. prostredi - mam omv, router s ddwrt a skriptem, co mi probouzi server
-
-3. instalace a konfigurace routeru
-
-4. instalace a konfigurace serveru
-
-    - instalace omv
-
-    - setup omv
-
-        - plex
-
-        - transmission client
-
-        - samba
-
-    - setup wake on lan
-
-    - autoshutdown script
-
-        - popis jednotlivych veci v autoshutdown scriptu
-
-        - napr jak ziskat klic abych mohl cist z plexu
-
-5. dalsi tipy
-
-    - konfigurace plex (automaticke stahovani titulku, automaticka konverze titulku)
-
-    - plugin pro plex, ktery najde nenalezene soubory
-
-
-
-6. co chci jeste vylepsit
-
-    - automaticky premistovat stazene soubory z downloads
-
-    - kdyz plex nenajde metadata k nejakemu souboru, automaticky s tim neco udelat (zkusit je najit sam, nekam to presunout, atd...)
+## how to deploy
+- change the plex token
+- change transmission username and password
+- set debug to true
+- start the script in omv web-based settings on server start
