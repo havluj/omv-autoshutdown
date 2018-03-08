@@ -5,6 +5,8 @@
  * following services are active (being used at the moment): Plex,
  * Transmission client, Samba shares, or SSH. Cancels the shutdown countdown
  * if any one of the above listed services becomes active.
+ * 
+ * Check README.md for documentation.
  *
  * @author Jan Havluj <jan@havluj.eu>
  */
@@ -13,45 +15,41 @@
  *                          <SCRIPT CONFIGURATION>                          *
  ****************************************************************************/
 
-// Script time intervals
-/**
- * How often should the script check for service activity
- * (in seconds).
- */
-$SCRIPT_SLEEP_TIME = 10;
+$config_array = parse_ini_file("config.ini", true);
 
-/**
- * When no service is active, the script will set up
- * a shutdown countdown - this number configures in how
- * many minutes will the server shutdown if it does not
- * become active.
- */
-$SHUTDOWN_COUNTDOWN = 10;
+// general configuration
+$SCRIPT_SLEEP_TIME = $config_array[general][sleep_time];
+$SHUTDOWN_COUNTDOWN = $config_array[general][shutdown_countdown];
+$SERVER_IP = $config_array[general][server_ip];
 
 // Plex configuration
-$PLEX_PORT = 32400;
-$PLEX_TOKEN = "";
+$PLEX_PORT = $config_array[plex][plex_port];
+$PLEX_TOKEN = $config_array[plex][plex_token];
 
 // Transmission configuration
-$TRANSIMISSION_PORT = 9091;
+$TRANSIMISSION_PORT = $config_array[transmission][transmission_port];
+$TRANSIMISSION_USERNAME = $config_array[transmission][transmission_username];
+$TRANSIMISSION_PASSWORD = $config_array[transmission][transmission_password];
+
+// logging config
+$DEBUG = $config_array[logging][enable_logs];
+$LOG_LIFESPAN = $config_array[logging][log_lifespan];
+$LOG_FOLDER = $config_array[logging][log_folder];
+$CLEAR_LOG_DIR_EVERY = $config_array[logging][clear_logs_duration];
+
+// meta 
+$SCRIPT_DIR = realpath(dirname(__FILE__));
 
 /****************************************************************************
  *                          </SCRIPT CONFIGURATION>                         *
  ****************************************************************************/
 
 
-$DEBUG = TRUE;
-$LOG_LIFESPAN = 7 * 24 * 60 * 60; // 7 weeks in millis
-$LOG_FOLDER = "logs";
-$CLEAR_LOG_DIR_EVERY = 30 * 60; // clean logs every 30 minutes (IN SECODNS, same as $SCRIPT_SLEEP_TIME)
-$SERVER_IP = "localhost";
-$SCRIPT_DIR = realpath(dirname(__FILE__));
-
 function log_message($message, $shutdownTermination = FALSE)
 {
 	if ($GLOBALS["DEBUG"]) {
-        $location = $SCRIPT_DIR . "/" . $LOG_FOLDER;
-        $filename = date("Ymd") . ".txt";
+        $location = $LOG_FOLDER . "/" . date("Ymd");
+        $filename = "log_" . date("H") . ".txt";
         
 		print($message);
 		file_put_contents($location . "/" . $filename, date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
@@ -65,6 +63,12 @@ function log_message($message, $shutdownTermination = FALSE)
 
 function clean_up_logs() {
     // todo user LOG_LIFESPAN
+    $log_dirs = glob($LOG_FOLDER . '/log_*', GLOB_ONLYDIR);
+    if($log_dirs === false) {
+        $log_dirs = array();
+    }
+
+    $log_dirs = array_split();
 }
 
 function isPlexActive($serverAddress, $port, $token)
