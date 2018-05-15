@@ -44,32 +44,58 @@ $SCRIPT_DIR = realpath(dirname(__FILE__));
  *                          </SCRIPT CONFIGURATION>                         *
  ****************************************************************************/
 
-// todo remove globals (pass as params)
 function log_message($message, $shutdownTermination = FALSE)
 {
     if ($GLOBALS["DEBUG"]) {
         $location = $GLOBALS["LOG_FOLDER_LOCATION"] . "/" . date("Ymd");
         $filename = "log_" . date("H") . ".txt";
 
-        print($message);
+        if (!is_dir($location)) {
+            // dir doesn't exist, make it
+            mkdir($location, 0750, true);
+        }
         file_put_contents($location . "/" . $filename, date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
         if ($shutdownTermination) {
-            print(" - shutdown terminated\n");
-        } else {
-            print("\n");
+            file_put_contents($location . "/" . $filename, date("Y-m-d H:i:s") . " - " . "SHUTDOWN TERMINATED\n", FILE_APPEND);
         }
     }
 }
 
 function clean_up_logs()
 {
-    // todo user LOG_LIFESPAN
-    $log_dirs = glob($GLOBALS["LOG_FOLDER_LOCATION"] . '/log_*', GLOB_ONLYDIR);
+    $log_dirs = glob($GLOBALS["LOG_FOLDER_LOCATION"] . '/*', GLOB_ONLYDIR);
     if ($log_dirs === false) {
         $log_dirs = array();
     }
 
-    $log_dirs = array_split();
+
+    foreach ($log_dirs as $log_dir) {
+        $date = explode("/", $log_dir);
+
+        $time_diff = (date("Ymd") + 6) - $date[1];
+        if ($time_diff > $GLOBALS["LOG_LIFESPAN"]) {
+            rrmdir($log_dir);
+        }
+    }
+}
+
+/**
+ * Recursively removes a folder along with all its files and directories
+ *
+ * @param String $path
+ */
+function rrmdir($path)
+{
+    // Open the source directory to read in files
+    $i = new DirectoryIterator($path);
+    foreach ($i as $f) {
+        if ($f->isFile()) {
+            unlink($f->getRealPath());
+        } else if (!$f->isDot() && $f->isDir()) {
+            rrmdir($f->getRealPath());
+        }
+    }
+    rmdir($path);
 }
 
 function isPlexActive($serverAddress, $port, $token)
@@ -109,10 +135,10 @@ function isPlexActive($serverAddress, $port, $token)
     return FALSE;
 }
 
-function isTransmissionActive($serverAddress, $port)
+function isTransmissionActive($serverAddress, $port, $username, $password)
 {
     try {
-        $url = "http://" . $serverAddress . ":" . $port . "/transmission/rpc";
+        $url = "http://" . $username . ":" . $password . "@" . $serverAddress . ":" . $port . "/transmission/rpc";
         $transmissionSessionId = NULL;
 
         // obtain X-Transmission-Session-Id
@@ -201,20 +227,23 @@ function isAnybodyLoggedIn()
     return FALSE;
 }
 
-// todo is plex online
-// todo initial sleep
+
+// initial setup
+$processUser = posix_getpwuid(posix_geteuid());
+log_message("Started autoshutdown process under user: " . $processUser['name']);
+clean_up_logs();
+
+$isAutoshutdownSet = FALSE;
+$cleanLogsThreashold = 0;
+$cleanLogsCycle = 0;
+if ($CLEAR_LOG_DIR_EVERY >= $SCRIPT_SLEEP_TIME) {
+    $cleanLogsThreashold = (int) ($CLEAR_LOG_DIR_EVERY / $SCRIPT_SLEEP_TIME);
+}
 
 // main cycle
-$isAutoshutdownSet = FALSE;
-if ($CLEAR_LOG_DIR_EVERY >= $SCRIPT_SLEEP_TIME) {
-    $cleanLogsThreashold = $CLEAR_LOG_DIR_EVERY / $SCRIPT_SLEEP_TIME;
-} else {
-    $cleanLogsThreashold = 0; // clean logs every run
-}
-$cleanLogsCycle = $cleanLogsThreashold; // every 30 minutes
 while (TRUE) {
     if (isAnybodyLoggedIn() || isSambaActive() || isPlexActive($SERVER_IP, $PLEX_PORT, $PLEX_TOKEN)
-        || isTransmissionActive($SERVER_IP, $TRANSIMISSION_PORT)
+        || isTransmissionActive($SERVER_IP, $TRANSIMISSION_PORT, $TRANSIMISSION_USERNAME, $TRANSIMISSION_PASSWORD)
     ) {
         if ($isAutoshutdownSet) {
             log_message("at least one service became active, canceling the shutdown ...");
@@ -242,7 +271,7 @@ while (TRUE) {
     log_message("-------------------------------------------------------------");
 
     // clear up logs
-    if (cleanLogsCycle == $cleanLogsThreashold) { // clean up logs and reset cycle counter
+    if ($cleanLogsCycle == $cleanLogsThreashold) { // clean up logs and reset cycle counter
         clean_up_logs();
         $cleanLogsCycle = 0;
     } else { // increment cycle counter
