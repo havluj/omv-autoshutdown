@@ -44,7 +44,7 @@ $SCRIPT_DIR = realpath(dirname(__FILE__));
  *                          </SCRIPT CONFIGURATION>                         *
  ****************************************************************************/
 
-function log_message($message, $shutdownTermination = FALSE)
+function log_message($message)
 {
     if ($GLOBALS["DEBUG"]) {
         $location = $GLOBALS["LOG_FOLDER_LOCATION"] . "/" . date("Ymd");
@@ -55,9 +55,6 @@ function log_message($message, $shutdownTermination = FALSE)
             mkdir($location, 0750, true);
         }
         file_put_contents($location . "/" . $filename, date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
-        if ($shutdownTermination) {
-            file_put_contents($location . "/" . $filename, date("Y-m-d H:i:s") . " - " . "SHUTDOWN TERMINATED\n", FILE_APPEND);
-        }
     }
 }
 
@@ -67,7 +64,6 @@ function clean_up_logs()
     if ($log_dirs === false) {
         $log_dirs = array();
     }
-
 
     foreach ($log_dirs as $log_dir) {
         $date = explode("/", $log_dir);
@@ -108,7 +104,7 @@ function isPlexActive($serverAddress, $port, $token)
         if ($mediaStreamingCnt < 1) {
             log_message("no media are being streamed");
         } else {
-            log_message("there is/are " . $mediaStreamingCnt . " media stream(s)", TRUE);
+            log_message("there is/are " . $mediaStreamingCnt . " media stream(s)");
 
             return TRUE;
         }
@@ -124,7 +120,7 @@ function isPlexActive($serverAddress, $port, $token)
         if ($mediaTranscodingCnt < 1) {
             log_message("no media are being transcoded");
         } else {
-            log_message("there is/are " . $mediaTranscodingCnt . " media transcoding", TRUE);
+            log_message("there is/are " . $mediaTranscodingCnt . " media transcoding");
 
             return TRUE;
         }
@@ -182,7 +178,7 @@ function isTransmissionActive($serverAddress, $port, $username, $password)
 
             foreach ($decodedJson->arguments->torrents as $torrent) {
                 if ($torrent->percentDone < 1) {
-                    log_message("at least one of the downloads is not finished yet", TRUE);
+                    log_message("at least one of the downloads is not finished yet");
 
                     return TRUE;
                 }
@@ -202,7 +198,7 @@ function isSambaActive()
     log_message("checking samba connections via `smbstatus --shares` command ...");
     $outputCode = exec("smbstatus --shares | awk 'NR > 3 { print }' | head -n -1", $output);
     if ($outputCode == 0 && count($output) > 0) {
-        log_message("there is/are " . count($output) . " active samba connection(s)", TRUE);
+        log_message("there is/are " . count($output) . " active samba connection(s)");
 
         return TRUE;
     } else {
@@ -217,7 +213,7 @@ function isAnybodyLoggedIn()
     log_message("checking logged in users via `who` command ...");
     $outputCode = exec("who", $output);
     if ($outputCode == 0 && count($output) > 0) {
-        log_message("there is/are " . count($output) . " user(s) logged in", TRUE);
+        log_message("there is/are " . count($output) . " user(s) logged in");
 
         return TRUE;
     } else {
@@ -230,21 +226,24 @@ function isAnybodyLoggedIn()
 
 // initial setup
 $processUser = posix_getpwuid(posix_geteuid());
-log_message("Started autoshutdown process under user: " . $processUser['name']);
+log_message("Started autoshutdown script under user: " . $processUser['name']);
 clean_up_logs();
 
 $isAutoshutdownSet = FALSE;
 $cleanLogsThreashold = 0;
 $cleanLogsCycle = 0;
 if ($CLEAR_LOG_DIR_EVERY >= $SCRIPT_SLEEP_TIME) {
-    $cleanLogsThreashold = (int) ($CLEAR_LOG_DIR_EVERY / $SCRIPT_SLEEP_TIME);
+    $cleanLogsThreashold = (int)($CLEAR_LOG_DIR_EVERY / $SCRIPT_SLEEP_TIME);
 }
 
 // main cycle
 while (TRUE) {
-    if (isAnybodyLoggedIn() || isSambaActive() || isPlexActive($SERVER_IP, $PLEX_PORT, $PLEX_TOKEN)
-        || isTransmissionActive($SERVER_IP, $TRANSIMISSION_PORT, $TRANSIMISSION_USERNAME, $TRANSIMISSION_PASSWORD)
-    ) {
+    $isAnybodyLoggedIn = isAnybodyLoggedIn();
+    $isSambaActive = isSambaActive();
+    $isPlexActive = isPlexActive($SERVER_IP, $PLEX_PORT, $PLEX_TOKEN);
+    $isTransmissionActive = isTransmissionActive($SERVER_IP, $TRANSIMISSION_PORT, $TRANSIMISSION_USERNAME, $TRANSIMISSION_PASSWORD);
+
+    if ($isAnybodyLoggedIn || $isSambaActive || $isPlexActive || $isTransmissionActive) {
         if ($isAutoshutdownSet) {
             log_message("at least one service became active, canceling the shutdown ...");
             $outputCode = exec("shutdown -c &>/dev/null");
