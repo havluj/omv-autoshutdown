@@ -68,7 +68,7 @@ function clean_up_logs()
     foreach ($log_dirs as $log_dir) {
         $date = explode("/", $log_dir);
 
-        $time_diff = (date("Ymd") + 6) - $date[1];
+        $time_diff = (date("Ymd")) - $date[1];
         if ($time_diff > $GLOBALS["LOG_LIFESPAN"]) {
             rrmdir($log_dir);
         }
@@ -225,10 +225,10 @@ function isAnybodyLoggedIn()
 
 
 // initial setup
+clean_up_logs();
 $processUser = posix_getpwuid(posix_geteuid());
 log_message("Started autoshutdown script under user: " . $processUser['name']);
 log_message("Running from: " . $SCRIPT_DIR);
-clean_up_logs();
 
 $isAutoshutdownSet = FALSE;
 $cleanLogsThreashold = 0;
