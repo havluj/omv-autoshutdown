@@ -20,7 +20,6 @@ $config_array = parse_ini_file("config.ini", true);
 // general configuration
 $SCRIPT_SLEEP_TIME = $config_array["general"]["sleep_time"];
 $SHUTDOWN_COUNTDOWN = $config_array["general"]["shutdown_countdown"];
-$SERVER_IP = $config_array["general"]["server_ip"];
 
 // Plex configuration
 $PLEX_PORT = $config_array["plex"]["plex_port"];
@@ -39,6 +38,7 @@ $CLEAR_LOG_DIR_EVERY = $config_array["logging"]["clear_logs_duration"];
 
 // meta 
 $SCRIPT_DIR = realpath(dirname(__FILE__));
+$SERVER_IP = "localhost";
 
 /****************************************************************************
  *                          </SCRIPT CONFIGURATION>                         *
@@ -227,6 +227,7 @@ function isAnybodyLoggedIn()
 // initial setup
 $processUser = posix_getpwuid(posix_geteuid());
 log_message("Started autoshutdown script under user: " . $processUser['name']);
+log_message("Running from: " . $SCRIPT_DIR);
 clean_up_logs();
 
 $isAutoshutdownSet = FALSE;
