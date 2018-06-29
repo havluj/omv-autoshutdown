@@ -247,7 +247,7 @@ while (TRUE) {
     if ($isAnybodyLoggedIn || $isSambaActive || $isPlexActive || $isTransmissionActive) {
         if ($isAutoshutdownSet) {
             log_message("at least one service became active, canceling the shutdown ...");
-            $outputCode = exec("shutdown -c &>/dev/null");
+            $outputCode = exec("shutdown -c --no-wall &>/dev/null");
             if ($outputCode == 0) {
                 $isAutoshutdownSet = FALSE;
                 log_message("shutdown has been successfully terminated");
@@ -259,6 +259,7 @@ while (TRUE) {
         if (!$isAutoshutdownSet) {
             log_message("no services active, setting up shutdown ...");
             $outputCode = exec($SCRIPT_DIR . "/autoshutdown.sh " . $SHUTDOWN_COUNTDOWN . " &>/dev/null &");
+            log_message("script result: " . $outputCode);
             if ($outputCode == 0) {
                 $isAutoshutdownSet = TRUE;
                 log_message("shutdown has been successfully set up");
