@@ -223,6 +223,8 @@ function isAnybodyLoggedIn()
     return FALSE;
 }
 
+// initial sleep
+sleep($SHUTDOWN_COUNTDOWN);
 
 // initial setup
 clean_up_logs();
