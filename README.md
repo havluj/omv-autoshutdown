@@ -1,15 +1,16 @@
-# omv-autoshutdown
+# OMV autoshutdown
 
-Tutorial will be available soon on my website. 
+A bunch of scripts that determine whether your (OpenMediaVault) media server is active.
 
-In short this simple project shuts down my open media vault based on it current usage.
+If the server is determined to be inactive, an autoshutdown sequence is innitiated. If the server is deemed active, all previously initiated sequences will be terminated.
 
+If any one of these is active or running, the server is deemed to be active:
 
-## todo list
-all done for now
+* plex conversions
+* plex active streams
+* transmission downloads
+* active SSH connections
 
-## how to deploy
-- change the plex token
-- change transmission username and password
-- set debug to true
-- start the script in omv web-based settings on server start
+---
+
+For configuration, see `config.ini`.
